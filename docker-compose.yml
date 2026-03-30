@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Servidor Nginx
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx_perfumeria
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - perfumeria_network
+
+  # PHP-FPM
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: php_perfumeria
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - perfumeria_network
+
+  # Base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_perfumeria
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: perfumeria_db
+      MYSQL_USER: perfumeria_user
+      MYSQL_PASSWORD: perfumeria_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - perfumeria_network
+
+  # phpMyAdmin (opcional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_perfumeria
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - perfumeria_network
+
+networks:
+  perfumeria_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
